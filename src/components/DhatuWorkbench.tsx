@@ -58,9 +58,13 @@ export default function DhatuWorkbench() {
     });
   }, [scenarios, filterLang, filterSearch]);
 
-  // Determine Layer statuses based on scenario expected status
-  const linguisticStatus = "COMPLETED";
-  const semanticStatus = currentScenario.expected_status === "PASS" ? "COMPLETED" : currentScenario.expected_status;
+  // Determine Layer statuses based on mode (Preset vs Custom)
+  const linguisticStatus = useCustom ? "NOT_EXECUTED" : "COMPLETED";
+  const semanticStatus = useCustom
+    ? "NOT_EXECUTED"
+    : currentScenario.expected_status === "PASS"
+    ? "COMPLETED"
+    : currentScenario.expected_status;
   const physicalValidationStatus = "NOT_IMPLEMENTED"; // Explicitly not faked
 
   const getStatusBadge = (status: string) => {
@@ -101,7 +105,7 @@ export default function DhatuWorkbench() {
             Dhatu Semantic Adapter Workbench
           </h2>
           <p className="text-sm text-slate-300">
-            Translates natural language prompts across RU, UK, and EN into rigorous 9-category semantic structures, Dhatu operations, and verified causal DAGs while keeping physical validation strictly decoupled.
+            Translates natural language prompts across RU, UK, and EN into rigorous 9-category semantic structures, Dhatu operations, and structured semantic DAGs with explicit causal verification status.
           </p>
         </div>
       </div>
@@ -142,7 +146,7 @@ export default function DhatuWorkbench() {
         </div>
 
         <div className="flex items-center space-x-2 text-xs font-mono text-slate-400">
-          <span>Active Test ID: <strong className="text-indigo-400 font-bold">{useCustom ? "CUSTOM" : currentScenario.test_id}</strong></span>
+          <span>Active Mode: <strong className="text-indigo-400 font-bold">{useCustom ? "CUSTOM INPUT (NOT_EXECUTED)" : `PRESET [${currentScenario.test_id}]`}</strong></span>
         </div>
       </div>
 
@@ -161,7 +165,7 @@ export default function DhatuWorkbench() {
             Parses raw string input across RU, UK, EN, maps tokens to Sanskrit Dhatu roots (e.g., √man, √tula, √sthiti, √tapa).
           </p>
           <div className="text-xs font-mono bg-slate-950 p-2.5 rounded-xl border border-slate-800 space-y-1 text-slate-300">
-            <div>Detected Roots: <strong className="text-indigo-400">{currentScenario.expected_dhatu.join(", ")}</strong></div>
+            <div>Detected Roots: <strong className="text-indigo-400">{useCustom ? "NOT_AVAILABLE (Custom Input)" : currentScenario.expected_dhatu.join(", ")}</strong></div>
             <div>Language: <strong className="uppercase">{activeLang}</strong></div>
           </div>
         </div>
@@ -179,8 +183,8 @@ export default function DhatuWorkbench() {
             Transforms Dhatu tokens into 9 ontological categories, DAG structures, structured provenance, and causal relations.
           </p>
           <div className="text-xs font-mono bg-slate-950 p-2.5 rounded-xl border border-slate-800 space-y-1 text-slate-300">
-            <div>Status: <strong className="text-emerald-400">{currentScenario.expected_status}</strong></div>
-            <div>Provenance Mode: <strong className="text-indigo-300">{JSON.stringify(currentScenario.expected_provenance)}</strong></div>
+            <div>Status: <strong className="text-emerald-400">{useCustom ? "NOT_EXECUTED" : currentScenario.expected_status}</strong></div>
+            <div>Provenance Mode: <strong className="text-indigo-300">{useCustom ? "NOT_AVAILABLE" : JSON.stringify(currentScenario.expected_provenance)}</strong></div>
           </div>
         </div>
 
@@ -291,7 +295,7 @@ export default function DhatuWorkbench() {
 
               <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl space-y-1 text-xs font-mono">
                 <div className="text-slate-400 text-[11px] uppercase tracking-wider">Pass Criteria:</div>
-                <div className="text-slate-300">{currentScenario.pass_criteria}</div>
+                <div className="text-slate-300">{useCustom ? "Custom prompt active. No preset pass criteria." : currentScenario.pass_criteria}</div>
               </div>
             </div>
           </div>
@@ -306,10 +310,10 @@ export default function DhatuWorkbench() {
               <div className="flex justify-between">
                 <span className="text-slate-400">Source Category:</span>
                 <span className="text-indigo-300 font-bold">
-                  {currentScenario.expected_structure?.provenance || "EXPLICIT"}
+                  {useCustom ? "NOT_AVAILABLE" : currentScenario.expected_structure?.provenance || "EXPLICIT"}
                 </span>
               </div>
-              {currentScenario.expected_structure?.context_reference ? (
+              {!useCustom && currentScenario.expected_structure?.context_reference ? (
                 <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-1.5 text-[11px]">
                   <div>Context ID: <strong className="text-indigo-400">{currentScenario.expected_structure.context_reference.context_id}</strong></div>
                   <div>Source Type: <strong className="text-slate-300">{currentScenario.expected_structure.context_reference.source_type}</strong></div>
@@ -319,7 +323,7 @@ export default function DhatuWorkbench() {
                 </div>
               ) : (
                 <div className="text-slate-500 italic text-[11px]">
-                  No context reference required (EXPLICIT parameter).
+                  {useCustom ? "Analysis status: NOT_EXECUTED" : "No context reference required (EXPLICIT parameter)."}
                 </div>
               )}
             </div>
@@ -328,6 +332,59 @@ export default function DhatuWorkbench() {
 
         {/* Center & Right Column: Semantic Structure, Dhatu, DAG & Causality Viewers */}
         <div className="lg:col-span-2 space-y-6">
+          {/* Expected Result vs Actual Result Box */}
+          <div className="bg-slate-900 border border-indigo-500/40 rounded-2xl p-5 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="text-sm font-bold text-white flex items-center space-x-2">
+                <CheckCircle2 className="w-4 h-4 text-indigo-400" />
+                <span>Expected Result vs Actual Analysis Result</span>
+              </h3>
+              <span className="text-xs font-mono px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-800">
+                {useCustom ? "Custom Mode" : `Preset Test: ${currentScenario.test_id}`}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-mono">
+              {/* Expected Result Panel */}
+              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
+                <div className="text-indigo-400 font-bold uppercase tracking-wider flex items-center justify-between">
+                  <span>EXPECTED RESULT (Registry)</span>
+                  <span className="text-[10px] bg-slate-900 px-2 py-0.5 rounded text-slate-300">
+                    {useCustom ? "N/A" : currentScenario.expected_status}
+                  </span>
+                </div>
+                {useCustom ? (
+                  <p className="text-slate-500 italic">No preset expected result for custom phrasing.</p>
+                ) : (
+                  <div className="space-y-1 text-slate-300 text-[11px]">
+                    <div>Expected Dhatu: <strong className="text-indigo-300">{currentScenario.expected_dhatu.join(", ")}</strong></div>
+                    <pre className="bg-slate-900 p-2.5 rounded border border-slate-800 text-indigo-200 overflow-x-auto whitespace-pre-wrap mt-1">
+                      {JSON.stringify(currentScenario.expected_structure, null, 2)}
+                    </pre>
+                  </div>
+                )}
+              </div>
+
+              {/* Actual Result Panel */}
+              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
+                <div className="text-amber-400 font-bold uppercase tracking-wider flex items-center justify-between">
+                  <span>ACTUAL RESULT (Live Parser)</span>
+                  <span className="text-[10px] bg-amber-950/60 text-amber-300 border border-amber-900 px-2 py-0.5 rounded">
+                    NOT_EXECUTED
+                  </span>
+                </div>
+                <div className="space-y-1.5 text-[11px] text-slate-400">
+                  <div>ANALYSIS STATUS: <strong className="text-amber-400">NOT_EXECUTED</strong></div>
+                  <div>SEMANTIC RESULT: <strong className="text-slate-500">NOT_AVAILABLE</strong></div>
+                  <div>PHYSICAL VALIDATION: <strong className="text-slate-500">NOT_IMPLEMENTED</strong></div>
+                  <p className="text-slate-500 italic pt-1">
+                    Live NLP semantic extraction engine is not executed in UI preview. Displays expected registry specifications separately without faking execution.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Semantic Structure & Dhatu Operation Viewers */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Semantic Structure (9 Categories) */}
@@ -340,13 +397,19 @@ export default function DhatuWorkbench() {
                 <div className="flex justify-between">
                   <span className="text-slate-400">Detected Operation Type:</span>
                   <span className="text-emerald-300 font-bold">
-                    {currentScenario.expected_structure?.operation_type || currentScenario.expected_structure?.action || currentScenario.expected_structure?.goal || currentScenario.expected_structure?.constraint || "GENERAL"}
+                    {useCustom
+                      ? "NOT_AVAILABLE"
+                      : currentScenario.expected_structure?.operation_type ||
+                        currentScenario.expected_structure?.action ||
+                        currentScenario.expected_structure?.goal ||
+                        currentScenario.expected_structure?.constraint ||
+                        "GENERAL"}
                   </span>
                 </div>
                 <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-1">
                   <div className="text-[11px] text-slate-400 uppercase tracking-wider">Structure Payload:</div>
                   <pre className="text-indigo-300 text-[11px] overflow-x-auto whitespace-pre-wrap">
-                    {JSON.stringify(currentScenario.expected_structure, null, 2)}
+                    {useCustom ? "NOT_AVAILABLE" : JSON.stringify(currentScenario.expected_structure, null, 2)}
                   </pre>
                 </div>
               </div>
@@ -362,11 +425,15 @@ export default function DhatuWorkbench() {
                 <div>
                   <span className="text-slate-400 block mb-1">Assigned Dhatu Roots:</span>
                   <div className="flex flex-wrap gap-1.5">
-                    {currentScenario.expected_dhatu.map((d) => (
-                      <span key={d} className="px-2 py-1 bg-indigo-950/80 text-indigo-300 border border-indigo-800 rounded-lg font-bold">
-                        {d}
-                      </span>
-                    ))}
+                    {useCustom ? (
+                      <span className="text-slate-500 italic">NOT_AVAILABLE</span>
+                    ) : (
+                      currentScenario.expected_dhatu.map((d) => (
+                        <span key={d} className="px-2 py-1 bg-indigo-950/80 text-indigo-300 border border-indigo-800 rounded-lg font-bold">
+                          {d}
+                        </span>
+                      ))
+                    )}
                   </div>
                 </div>
                 <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-1.5 text-[11px] text-slate-300">
@@ -377,7 +444,7 @@ export default function DhatuWorkbench() {
             </div>
           </div>
 
-          {/* DAG Viewer */}
+          {/* DAG Viewer (Full Completeness) */}
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-slate-200 flex items-center space-x-2">
@@ -385,41 +452,54 @@ export default function DhatuWorkbench() {
                 <span>DAG Causal Pipeline Viewer</span>
               </h3>
               <span className="text-xs font-mono text-slate-400">
-                {currentScenario.expected_structure?.dag ? "DAG Active" : "No DAG Structure"}
+                {!useCustom && currentScenario.expected_structure?.dag ? "DAG Active" : "No DAG Structure"}
               </span>
             </div>
 
-            {currentScenario.expected_structure?.dag ? (
+            {!useCustom && currentScenario.expected_structure?.dag ? (
               <div className="space-y-3 font-mono text-xs">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Nodes */}
+                  {/* Nodes with full properties */}
                   <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-2">
-                    <div className="text-[11px] font-bold text-indigo-400 uppercase tracking-wider">DAG Nodes ({currentScenario.expected_structure.dag.nodes.length})</div>
+                    <div className="text-[11px] font-bold text-indigo-400 uppercase tracking-wider">
+                      DAG Nodes ({currentScenario.expected_structure.dag.nodes.length})
+                    </div>
                     <div className="space-y-2">
                       {currentScenario.expected_structure.dag.nodes.map((node: any, idx: number) => (
-                        <div key={idx} className="bg-slate-900 p-2.5 rounded-lg border border-slate-800 space-y-1 text-[11px]">
-                          <div className="flex justify-between">
-                            <span className="text-slate-200 font-bold">{node.operation_id}</span>
+                        <div key={idx} className="bg-slate-900 p-3 rounded-lg border border-slate-800 space-y-1.5 text-[11px]">
+                          <div className="flex justify-between font-bold">
+                            <span className="text-slate-200">{node.operation_id}</span>
                             <span className="text-indigo-300 bg-indigo-950 px-1.5 py-0.5 rounded">{node.dhatu_id}</span>
                           </div>
-                          <div className="text-slate-400">Type: <span className="text-slate-300">{node.operation_type}</span></div>
+                          <div className="text-slate-400">Type: <span className="text-slate-300">{node.operation_type || "NOT_SPECIFIED"}</span></div>
+                          <div>Inputs: <span className="text-slate-300">{node.inputs ? node.inputs.join(", ") : "NOT_SPECIFIED"}</span></div>
+                          <div>Outputs: <span className="text-slate-300">{node.outputs ? node.outputs.join(", ") : "NOT_SPECIFIED"}</span></div>
+                          <div>Parameters: <span className="text-slate-300">{node.parameters ? JSON.stringify(node.parameters) : "NOT_SPECIFIED"}</span></div>
+                          <div>Units: <span className="text-slate-300">{node.units || "NOT_SPECIFIED"}</span></div>
+                          <div>Provenance: <span className="text-slate-300">{node.provenance || "NOT_SPECIFIED"}</span></div>
+                          <div>Preconditions: <span className="text-slate-300">{node.preconditions || "NOT_SPECIFIED"}</span></div>
+                          <div>Postconditions: <span className="text-slate-300">{node.postconditions || "NOT_SPECIFIED"}</span></div>
                         </div>
                       ))}
                     </div>
                   </div>
 
-                  {/* Edges */}
+                  {/* Edges with full properties */}
                   <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-2">
-                    <div className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider">Directed Edges ({currentScenario.expected_structure.dag.edges.length})</div>
+                    <div className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider">
+                      Directed Edges ({currentScenario.expected_structure.dag.edges.length})
+                    </div>
                     <div className="space-y-2">
                       {currentScenario.expected_structure.dag.edges.map((edge: any, idx: number) => (
-                        <div key={idx} className="bg-slate-900 p-2.5 rounded-lg border border-slate-800 space-y-1 text-[11px]">
-                          <div className="flex items-center space-x-2 text-slate-200">
+                        <div key={idx} className="bg-slate-900 p-3 rounded-lg border border-slate-800 space-y-1.5 text-[11px]">
+                          <div className="flex items-center space-x-2 text-slate-200 font-bold">
                             <span>{edge.from}</span>
                             <ArrowRight className="w-3 h-3 text-indigo-400" />
                             <span>{edge.to}</span>
                           </div>
-                          <div className="text-slate-400">Relation: <span className="text-emerald-300">{edge.relation_type}</span> {edge.condition && `(Condition: ${edge.condition})`}</div>
+                          <div>Relation: <span className="text-emerald-300 font-bold">{edge.relation_type || "NOT_SPECIFIED"}</span></div>
+                          <div>Condition: <span className="text-slate-300">{edge.condition || "NOT_SPECIFIED"}</span></div>
+                          <div>Causal Basis: <span className="text-slate-300">{edge.causal_basis || "NOT_SPECIFIED"}</span></div>
                         </div>
                       ))}
                     </div>
@@ -428,7 +508,7 @@ export default function DhatuWorkbench() {
               </div>
             ) : (
               <div className="bg-slate-950 p-6 rounded-xl border border-slate-800 text-center text-slate-400 text-xs font-mono space-y-2">
-                <p>No multi-node DAG sequence defined for scenario <strong className="text-indigo-400">{currentScenario.test_id}</strong>.</p>
+                <p>No multi-node DAG sequence defined for scenario <strong className="text-indigo-400">{useCustom ? "CUSTOM" : currentScenario.test_id}</strong>.</p>
                 <p className="text-[11px] text-slate-500">Single operation or parameter boundary structure.</p>
               </div>
             )}
@@ -436,7 +516,7 @@ export default function DhatuWorkbench() {
 
           {/* Causality & Physical Validation Panel */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Causality Viewer */}
+            {/* Causality Viewer (Strict Statuses) */}
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
               <h3 className="text-sm font-bold text-slate-200 flex items-center space-x-2 border-b border-slate-800 pb-2">
                 <CheckCircle2 className="w-4 h-4 text-indigo-400" />
@@ -446,12 +526,18 @@ export default function DhatuWorkbench() {
                 <div className="flex justify-between">
                   <span className="text-slate-400">Causality Type:</span>
                   <span className="text-indigo-300 font-bold">
-                    {currentScenario.expected_structure?.causal_type || "ASSERTED_CAUSAL_RELATION"}
+                    {useCustom
+                      ? "NOT_AVAILABLE"
+                      : currentScenario.expected_structure?.causal_type || "NO_CAUSAL_RELATION_DECLARED"}
                   </span>
                 </div>
-                <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-1 text-[11px] text-slate-400">
-                  <p className="text-amber-400 font-semibold">&bull; Assertion vs Verification</p>
-                  <p>User-asserted causality is strictly distinguished from physically verified causal laws. Unverified assertions never bypass engine gates.</p>
+                <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-1.5 text-[11px] text-slate-400">
+                  <p className="text-amber-400 font-semibold">&bull; Causality States</p>
+                  <p>
+                    {currentScenario.expected_structure?.causal_type
+                      ? "User/Registry explicitly asserts causal relation. Physical verification status: NOT_VERIFIED."
+                      : "No causal relation declared in prompt or fixture. Avoids faking ASSERTED_CAUSAL_RELATION."}
+                  </p>
                 </div>
               </div>
             </div>
