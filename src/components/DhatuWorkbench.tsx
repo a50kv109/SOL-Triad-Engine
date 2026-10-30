@@ -58,7 +58,7 @@ export default function DhatuWorkbench() {
     });
   }, [scenarios, filterLang, filterSearch]);
 
-  // Determine Layer statuses (honest execution states)
+  // Determine Layer execution statuses (honestly set to NOT_EXECUTED / NOT_IMPLEMENTED)
   const linguisticStatus = "NOT_EXECUTED";
   const semanticStatus = "NOT_EXECUTED";
   const physicalValidationStatus = "NOT_IMPLEMENTED";
@@ -161,7 +161,8 @@ export default function DhatuWorkbench() {
             Parses raw string input across RU, UK, EN, maps tokens to Sanskrit Dhatu roots (e.g., √man, √tula, √sthiti, √tapa).
           </p>
           <div className="text-xs font-mono bg-slate-950 p-2.5 rounded-xl border border-slate-800 space-y-1 text-slate-300">
-            <div>Detected Roots: <strong className="text-indigo-400">{useCustom ? "NOT_AVAILABLE (Custom Input)" : currentScenario.expected_dhatu.join(", ")}</strong></div>
+            <div>Execution Status: <strong className="text-amber-400">NOT_EXECUTED</strong></div>
+            <div>Expected Dhatu Roots: <strong className="text-indigo-400">{useCustom ? "N/A" : currentScenario.expected_dhatu.join(", ")}</strong></div>
             <div>Language: <strong className="uppercase">{activeLang}</strong></div>
           </div>
         </div>
@@ -179,8 +180,9 @@ export default function DhatuWorkbench() {
             Transforms Dhatu tokens into 9 ontological categories, DAG structures, structured provenance, and causal relations.
           </p>
           <div className="text-xs font-mono bg-slate-950 p-2.5 rounded-xl border border-slate-800 space-y-1 text-slate-300">
-            <div>Status: <strong className="text-emerald-400">{useCustom ? "NOT_EXECUTED" : currentScenario.expected_status}</strong></div>
-            <div>Provenance Mode: <strong className="text-indigo-300">{useCustom ? "NOT_AVAILABLE" : JSON.stringify(currentScenario.expected_provenance)}</strong></div>
+            <div>Execution Status: <strong className="text-amber-400">NOT_EXECUTED</strong></div>
+            <div>Expected Test Status: <strong className="text-emerald-400">{useCustom ? "N/A" : currentScenario.expected_status}</strong></div>
+            <div>Expected Provenance: <strong className="text-indigo-300">{useCustom ? "N/A" : JSON.stringify(currentScenario.expected_provenance)}</strong></div>
           </div>
         </div>
 
