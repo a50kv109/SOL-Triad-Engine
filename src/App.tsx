@@ -36,6 +36,7 @@ import {
   SystemState,
   EvidenceRecord,
 } from "./types/triad";
+import DhatuWorkbench from "./components/DhatuWorkbench";
 
 // Comprehensive test metadata representing all 56 pytest items
 interface TestItem {
@@ -137,7 +138,7 @@ const ALL_TESTS: TestItem[] = [
 ];
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<"workbench" | "tests" | "architecture" | "docs" | "export">("workbench");
+  const [activeTab, setActiveTab] = useState<"workbench" | "dhatu" | "tests" | "architecture" | "docs" | "export">("workbench");
   const [selectedScenarioId, setSelectedScenarioId] = useState<string>("pass-nominal");
 
   // Editable Scenario State in Workbench
@@ -231,6 +232,17 @@ export default function App() {
               <span>Workbench</span>
             </button>
             <button
+              onClick={() => setActiveTab("dhatu")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center space-x-1.5 ${
+                activeTab === "dhatu"
+                  ? "bg-indigo-600 text-white shadow-sm"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-900"
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Dhatu Adapter (70)</span>
+            </button>
+            <button
               onClick={() => setActiveTab("tests")}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center space-x-1.5 ${
                 activeTab === "tests"
@@ -305,6 +317,9 @@ export default function App() {
 
       {/* Main Body */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6">
+        {/* ==================== DHATU ADAPTER TAB ==================== */}
+        {activeTab === "dhatu" && <DhatuWorkbench />}
+
         {/* ==================== WORKBENCH TAB ==================== */}
         {activeTab === "workbench" && (
           <div className="space-y-6">
