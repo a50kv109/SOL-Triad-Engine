@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://sol-triad.org/schemas/v0.4.0/sol_triad_response.schema.json",
   "title": "SolTriadEvaluationResponse",
-  "description": "Standardized machine-readable JSON response schema produced by the SOL-Triad Engine v0.4.0 Agent Integration Layer.",
+  "description": "JSON protocol 0.4.0 response schema produced by SOL-Triad Engine package v0.4.1.",
   "type": "object",
   "required": [
     "request_id",
@@ -26,7 +26,7 @@
     },
     "engine_version": {
       "type": "string",
-      "description": "Kernel version that evaluated the request ('0.4.0')."
+      "description": "Kernel package version that evaluated the request (for example, '0.4.1')."
     },
     "verdict": {
       "type": "string",

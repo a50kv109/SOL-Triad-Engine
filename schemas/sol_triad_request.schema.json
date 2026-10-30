@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://sol-triad.org/schemas/v0.4.0/sol_triad_request.schema.json",
   "title": "SolTriadEvaluationRequest",
-  "description": "JSON request schema for invoking the SOL-Triad Engine v0.4.0 evaluation via the Agent Integration Layer.",
+  "description": "JSON protocol 0.4.0 request schema supported by SOL-Triad Engine package v0.4.1.",
   "type": "object",
   "required": [
     "request_id",
@@ -15,6 +15,7 @@
   "properties": {
     "request_id": {
       "type": "string",
+      "minLength": 1,
       "description": "Unique identifier for this evaluation request (e.g., UUID or agent action ID)."
     },
     "protocol_version": {
@@ -24,48 +25,26 @@
     },
     "engine_version": {
       "type": "string",
-      "description": "Target engine version requested (optional, e.g. '0.4.0')."
+      "description": "Target engine package version requested (optional, e.g. '0.4.1')."
     },
     "evaluation_context": {
       "type": "object",
       "description": "Optional arbitrary metadata regarding the agent, environment, or intent.",
       "additionalProperties": true
     },
-    "evaluation_time": {
-      "type": "number",
-      "description": "Optional explicit UNIX timestamp (seconds) for deterministic time anchoring."
-    },
-    "evidence_records": {
-      "type": "array",
-      "description": "Optional inline ground-truth evidence records supplied by an authoritative oracle.",
-      "items": {
-        "type": "object",
-        "required": ["evidence_id", "domain", "epistemic_status", "timestamp_sec"],
-        "properties": {
-          "evidence_id": { "type": "string" },
-          "domain": { "type": "string" },
-          "epistemic_status": {
-            "type": "string",
-            "enum": ["FACT", "INFERENCE", "UNKNOWN"]
-          },
-          "timestamp_sec": { "type": "number" },
-          "payload_hash": {
-            "type": ["string", "null"]
-          },
-          "metadata": {
-            "type": "object",
-            "additionalProperties": true
-          }
-        },
-        "additionalProperties": false
-      }
-    },
     "source": {
       "type": "object",
-      "description": "SOURCE (S) Primitive: Epistemic origin, authority, scope, and time anchoring.",
-      "required": ["evidence_id", "epistemic_type", "timestamp_sec"],
+      "description": "SOURCE (S) Primitive. Trusted hosts must supply the evidence and authority fields; do not let an agent mint registry records or privileges.",
+      "required": [
+        "evidence_id",
+        "authority_domain",
+        "granted_scope",
+        "granted_loss_domains",
+        "epistemic_type",
+        "timestamp_sec"
+      ],
       "properties": {
-        "evidence_id": { "type": "string" },
+        "evidence_id": { "type": "string", "minLength": 1 },
         "authority_domain": {
           "type": ["array", "null"],
           "items": { "type": "string" },

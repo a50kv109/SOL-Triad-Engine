@@ -15,9 +15,13 @@ export type DiagnosticCode =
   | "EVIDENCE_PAYLOAD_MISMATCH"
   | "EVIDENCE_HASH_MISSING_IN_REGISTRY"
   | "EVIDENCE_HASH_REQUIRED_BY_REGISTRY"
+  | "EVIDENCE_TIMESTAMP_MISMATCH"
   | "INFERENCE_UNSUPPORTED"
   | "INFERENCE_PREMISE_INVALID_STATUS"
   | "INFERENCE_CIRCULAR_DEPENDENCY"
+  | "INFERENCE_CHAIN_INCOMPLETE"
+  | "INFERENCE_TRAVERSAL_LIMIT_EXCEEDED"
+  | "UNTRUSTED_EVIDENCE_SOURCE"
   | "EVIDENCE_PASS"
   | "SCOPE_DEFECT_NONE"
   | "SCOPE_EXCEEDED_DOMAIN"
@@ -55,6 +59,7 @@ export interface EvidenceRecord {
   domain: string;
   epistemic_status: EpistemicStatus;
   timestamp_sec: number;
+  corroborating_evidence_ids?: string[];
   payload_hash?: string;
   metadata?: Record<string, unknown>;
 }
