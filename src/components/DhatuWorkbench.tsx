@@ -58,14 +58,10 @@ export default function DhatuWorkbench() {
     });
   }, [scenarios, filterLang, filterSearch]);
 
-  // Determine Layer statuses based on mode (Preset vs Custom)
-  const linguisticStatus = useCustom ? "NOT_EXECUTED" : "COMPLETED";
-  const semanticStatus = useCustom
-    ? "NOT_EXECUTED"
-    : currentScenario.expected_status === "PASS"
-    ? "COMPLETED"
-    : currentScenario.expected_status;
-  const physicalValidationStatus = "NOT_IMPLEMENTED"; // Explicitly not faked
+  // Determine Layer statuses (honest execution states)
+  const linguisticStatus = "NOT_EXECUTED";
+  const semanticStatus = "NOT_EXECUTED";
+  const physicalValidationStatus = "NOT_IMPLEMENTED";
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -105,7 +101,7 @@ export default function DhatuWorkbench() {
             Dhatu Semantic Adapter Workbench
           </h2>
           <p className="text-sm text-slate-300">
-            Translates natural language prompts across RU, UK, and EN into rigorous 9-category semantic structures, Dhatu operations, and structured semantic DAGs with explicit causal verification status.
+            Interactive test registry and semantic structure viewer for RU, UK, and EN. Displays expected Dhatu mappings, ontology categories, DAG fixtures, and provenance. Live NLP analysis and physical validation are not yet implemented.
           </p>
         </div>
       </div>
@@ -368,7 +364,7 @@ export default function DhatuWorkbench() {
               {/* Actual Result Panel */}
               <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
                 <div className="text-amber-400 font-bold uppercase tracking-wider flex items-center justify-between">
-                  <span>ACTUAL RESULT (Live Parser)</span>
+                  <span>ACTUAL RESULT (Execution Status)</span>
                   <span className="text-[10px] bg-amber-950/60 text-amber-300 border border-amber-900 px-2 py-0.5 rounded">
                     NOT_EXECUTED
                   </span>
