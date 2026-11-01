@@ -494,7 +494,60 @@ class TestPreSolEngine(unittest.TestCase):
         actual_hash = hashlib.sha256(report_bytes).hexdigest()
         self.assertEqual(actual_hash, expected_hash)
 
+    def test_29_unconfirmed_claims_never_yield_pass_or_unauthorized_ready(self):
+        """Case 7: Epistemic boundary check:
+        Ungrounded fact claims must produce UNGROUNDED_FACT_CLAIM, keep formalization
+        in NEEDS_CLARIFICATION, and Pre-SOL must never output a kernel PASS verdict.
+        """
+        query = "Известно, что клапан полностью открыт. Принять к расчету."
+        report = self.engine.analyze(query)
+
+        finding_codes = [f.code for f in report.findings]
+        self.assertIn(FindingCode.UNGROUNDED_FACT_CLAIM, finding_codes)
+        self.assertEqual(report.formalization_readiness, ReadinessStatus.NEEDS_CLARIFICATION)
+        self.assertNotEqual(report.formalization_readiness, ReadinessStatus.READY)
+        # Pre-SOL report uses ReadinessStatus (READY, NEEDS_CLARIFICATION, BLOCKED),
+        # confirming that kernel-level 'PASS' is structurally impossible in Pre-SOL.
+        self.assertNotIn("PASS", [report.analysis_readiness.value, report.formalization_readiness.value])
+
+    def test_30_data_deficiency_on_unconstrained_action(self):
+        """Case 8: Missing constraints for action command triggers DATA_DEFICIENCY."""
+        query = "Выполни сброс клапана."
+        report = self.engine.analyze(query)
+
+        finding_codes = [f.code for f in report.findings]
+        self.assertIn(FindingCode.DATA_DEFICIENCY, finding_codes)
+        self.assertIn(FindingCode.MUTATION_ATTEMPT, finding_codes)
+        self.assertEqual(report.safety_barrier_state, SafetyBarrierState.ENGAGED)
+        self.assertEqual(report.formalization_readiness, ReadinessStatus.BLOCKED)
+
+    def test_31_epistemic_isolation_pre_sol_never_generates_fake_evidence_id(self):
+        """Case 9: Epistemic isolation: Pre-SOL must NEVER synthesize or inject fake evidence IDs."""
+        query = "Предположим, что температура достигла 150 C. Если это так, исследовать расширение трубы."
+        report = self.engine.analyze(query)
+
+        # Confirm all extracted statements have no fabricated evidence_id and no kernel evidence_id
+        for stmt in report.statements:
+            self.assertIsNone(stmt.parameters.get("evidence_id"))
+            self.assertNotEqual(stmt.grounding_source, GroundingSource.EXTERNAL_EVIDENCE_REF)
+            self.assertFalse(hasattr(stmt, "evidence_id"))
+            self.assertNotIn("mock-evidence-id", str(stmt.parameters))
+            self.assertNotIn("fake-evidence", str(stmt.parameters))
+
+
+
+    def test_32_qualitative_unquantified_goal_blocks_formalization(self):
+        """Case 10: Qualitative unmeasurable goal prevents promotion to READY."""
+        query = "Цель: сделать работу системы максимально быстрой и надежной."
+        report = self.engine.analyze(query)
+
+        finding_codes = [f.code for f in report.findings]
+        self.assertIn(FindingCode.AMBIGUOUS_QUALITATIVE_GOAL, finding_codes)
+        self.assertEqual(report.formalization_readiness, ReadinessStatus.NEEDS_CLARIFICATION)
+        self.assertNotEqual(report.formalization_readiness, ReadinessStatus.READY)
+
 
 if __name__ == "__main__":
     unittest.main()
+
 

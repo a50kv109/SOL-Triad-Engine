@@ -57,7 +57,12 @@ class SolTriadJsonAdapter:
         evaluates via SolTriadEngine, and serializes the report to a
         JSON-compatible dictionary matching sol_triad_response.schema.json.
         """
-        current_ts = evaluation_time if evaluation_time is not None else time.time()
+        if evaluation_time is not None:
+            current_ts = float(evaluation_time)
+        elif hasattr(self.engine, "clock") and callable(self.engine.clock):
+            current_ts = float(self.engine.clock())
+        else:
+            current_ts = time.time()
         request_id = "unknown_request"
 
         # 1. Parse JSON if string
@@ -113,9 +118,9 @@ class SolTriadJsonAdapter:
                     timestamp_sec=current_ts,
                 )
 
-        # 5. Extract Evaluation Time if specified in request
-        if "evaluation_time" in data and isinstance(data["evaluation_time"], (int, float)):
-            current_ts = float(data["evaluation_time"])
+        # 5. Evaluation Time Policy:
+        # Untrusted client payload field 'evaluation_time' is strictly IGNORED.
+        # Evaluation time is authoritative and governed by orchestrator parameter / engine clock.
 
         # 6. Parse and Build Primitives
         try:
@@ -289,13 +294,29 @@ class SolTriadJsonAdapter:
         data: Dict[str, Any],
         override_registry: Optional[EvidenceRegistryOracle],
     ) -> Optional[EvidenceRegistryOracle]:
-        inline_records = data.get("evidence_records")
-        if not inline_records:
-            return override_registry if override_registry is not None else self.default_registry
+        """
+        Public ingress registry resolver.
+        Strictly enforces trusted registry: uses override_registry if provided,
+        otherwise falls back to self.default_registry (or self.engine.registry).
+        Untrusted inline 'evidence_records' in client JSON payload are NEVER registered
+        into the active verification registry.
+        """
+        if override_registry is not None:
+            return override_registry
+        if self.default_registry is not None:
+            return self.default_registry
+        return self.engine.registry if self.engine is not None else None
 
-        # Populate an in-memory registry
+    @staticmethod
+    def create_test_registry(records: List[Dict[str, Any]]) -> InMemoryEvidenceRegistry:
+        """
+        Explicit helper for test environments: parses raw record dictionaries into
+        an InMemoryEvidenceRegistry instance.
+        Must be explicitly provided to SolTriadJsonAdapter(default_registry=...) or
+        evaluate_json(registry=...) by a trusted host/test runner.
+        """
         mem_reg = InMemoryEvidenceRegistry()
-        for rec_dict in inline_records:
+        for rec_dict in records:
             try:
                 rec = EvidenceRecord(
                     evidence_id=str(rec_dict["evidence_id"]),
@@ -307,15 +328,7 @@ class SolTriadJsonAdapter:
                 )
                 mem_reg.register(rec)
             except Exception:
-                pass  # Ignore malformed individual records; verification will handle missing IDs
-
-        # If an external registry was also provided, seed records from it if supported
-        base = override_registry if override_registry is not None else self.default_registry
-        if isinstance(base, InMemoryEvidenceRegistry):
-            for k, v in base._records.items():
-                if k not in mem_reg._records:
-                    mem_reg.register(v)
-
+                pass  # Ignore malformed test records
         return mem_reg
 
     def _format_response(

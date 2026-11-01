@@ -6,7 +6,8 @@
 - [x] Machine-readable JSON Request and Response Schemas (`schemas/sol_triad_request.schema.json`, `schemas/sol_triad_response.schema.json`).
 - [x] Decoupled `SolTriadJsonAdapter` for polyglot AI Agent Integration.
 - [x] Executable AI Agent integration demonstration with External Execution Controller (`examples/agent_integration_demo.py`).
-- [x] Comprehensive agent integration test suite (73 passing tests).
+- [x] Comprehensive agent integration test suite (75 passing tests across repository).
+- [x] **O7 → S-C-D Mapping Layer Audit (Experimental Stage):** Comprehensive audit, fail-closed contract hardening, and zero-silent-loss verification for `sol_triad/o7_mapping.py` (`PROPOSED / ISOLATED`, not connected to adapter ingress; 25 dedicated semantic tests in `tests/test_o7_triad_semantics.py`; documented in [`docs/O7_MAPPING_AUDIT.md`](O7_MAPPING_AUDIT.md)). Integration is **not** complete and requires formal schema definition and ingress quarantine.
 
 ---
 

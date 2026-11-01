@@ -19,6 +19,13 @@ from .models import (
     TaskFramingReport,
 )
 from .engine import PreSolEngine
+from .hash_chain import DiagnosticHashChain, DiagnosticBlock, ChainIntegrityError
+from .adapter_bridge import (
+    PreSolTriadBridge,
+    PreSolBridgeError,
+    SelfMintingViolationError,
+    SafetyBarrierViolationError,
+)
 
 __all__ = [
     "PreSolEngine",
@@ -32,4 +39,11 @@ __all__ = [
     "DiagnosticFinding",
     "ClarificationQuestion",
     "TaskFramingReport",
+    "DiagnosticHashChain",
+    "DiagnosticBlock",
+    "ChainIntegrityError",
+    "PreSolTriadBridge",
+    "PreSolBridgeError",
+    "SelfMintingViolationError",
+    "SafetyBarrierViolationError",
 ]

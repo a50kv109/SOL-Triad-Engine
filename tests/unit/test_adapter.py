@@ -201,11 +201,10 @@ def test_adapter_diagnostic_preservation(sample_registry, base_valid_request, cu
 
 
 def test_adapter_inline_evidence_records(base_valid_request, current_time):
-    """Test 10: Inline evidence records passed directly in JSON payload."""
+    """Test 10: Inline evidence records in payload are ignored by ingress and fail closed; trusted helper passes."""
     adapter = SolTriadJsonAdapter(default_registry=None)  # No external registry
 
-    req_inline = json.loads(json.dumps(base_valid_request))
-    req_inline["evidence_records"] = [
+    raw_records = [
         {
             "evidence_id": "ev-sensor-100",
             "domain": "thermal_control",
@@ -215,10 +214,26 @@ def test_adapter_inline_evidence_records(base_valid_request, current_time):
             "metadata": {"sensor_vendor": "AcmeThermal"}
         }
     ]
+    req_inline = json.loads(json.dumps(base_valid_request))
+    req_inline["evidence_records"] = raw_records
 
-    res = adapter.evaluate_json(req_inline, evaluation_time=current_time)
-    assert res["verdict"] == CoherenceVerdict.PASS.value
-    assert any(d["code"] == DiagnosticCode.EVIDENCE_PASS.value for d in res["diagnostics"])
+    # 1. Untrusted payload inline records must fail-closed (never PASS)
+    # Case A: No registry configured -> returns REVIEW / REGISTRY_OFFLINE
+    res_no_reg = adapter.evaluate_json(req_inline, evaluation_time=current_time)
+    assert res_no_reg["verdict"] == CoherenceVerdict.REVIEW.value
+    assert any(d["code"] == DiagnosticCode.REGISTRY_OFFLINE.value for d in res_no_reg["diagnostics"])
+
+    # Case B: Empty trusted registry configured -> returns FAIL / EVIDENCE_NOT_FOUND
+    adapter_empty = SolTriadJsonAdapter(default_registry=InMemoryEvidenceRegistry())
+    res_empty = adapter_empty.evaluate_json(req_inline, evaluation_time=current_time)
+    assert res_empty["verdict"] == CoherenceVerdict.FAIL.value
+    assert any(d["code"] == DiagnosticCode.EVIDENCE_NOT_FOUND.value for d in res_empty["diagnostics"])
+
+    # 2. When explicitly passed via trusted test registry helper, evaluation passes
+    trusted_reg = SolTriadJsonAdapter.create_test_registry(raw_records)
+    res_trusted = adapter.evaluate_json(req_inline, registry=trusted_reg, evaluation_time=current_time)
+    assert res_trusted["verdict"] == CoherenceVerdict.PASS.value
+    assert any(d["code"] == DiagnosticCode.EVIDENCE_PASS.value for d in res_trusted["diagnostics"])
 
 
 def test_adapter_malformed_json_string(sample_registry):

@@ -96,6 +96,39 @@ In v0.4.0, the engine introduces a decoupled integration architecture for AI Age
 The engine provides:
 - Machine-readable JSON request schema (`schemas/sol_triad_request.schema.json`).
 - Machine-readable JSON response schema (`schemas/sol_triad_response.schema.json`).
-- `SolTriadJsonAdapter` for polyglot agent runtimes.
+- `SolTriadJsonAdapter` for polyglot agent runtimes (`evaluate_json()`).
 - Clear trust boundaries separating agent planning from verification and execution control.
+
+### 4.1 Topology of Experimental Translation Layers (O7 Mapping)
+
+The codebase contains an experimental translation layer for the O7 ontology (`SOL-2-sol-for-agents`). **This layer is strictly isolated from the standard execution path**:
+
+```
+                       STANDARD INGRESS PATH (v0.4.0)
+[ AI Agent Client ] ──► [ SolTriadJsonAdapter.evaluate_json() ] ──► [ SolTriadEngine.evaluate() ]
+                            (Canonical S-C-D JSON Schema)
+
+─────────────────────────────────────────────────────────────────────────────────────────────
+
+                   EXPERIMENTAL PRE-PROCESSING LAYER (PROPOSED / ISOLATED)
+[ O7 Agent Plan ] ──► [ sol_triad/o7_mapping.py ]
+   (7 Primitives)         (map_o7_to_triad)
+                                │
+                                ▼
+                       O7MappingResult
+                       ├── is_valid: bool
+                       ├── is_executable: bool (False if any loss)
+                       ├── unrepresented_fields: List[str]
+                       ├── ambiguities: List[str]
+                       └── get_engine_inputs(allow_unrepresented=False)
+                                │
+                                │ (Blocked unless lossless or explicit human/policy review)
+                                ┼ ───X (NOT wired to SolTriadJsonAdapter or public ingress)
+```
+
+**Key Architectural Boundaries**:
+1. **Isolated from Adapter Ingress**: `sol_triad/o7_mapping.py` is neither imported nor reachable from `evaluate_json()`. Standard ingress requires canonical $\langle S, C, D \rangle$ payloads matching `schemas/sol_triad_request.schema.json`.
+2. **Fail-Closed Execution Gate**: `get_engine_inputs()` unconditionally raises `ValueError` if `is_valid=False` or if `ambiguities` exist. `allow_unrepresented=True` is **strictly an explicit override for a human-verified/policy-reviewed case**; it is not a standard automated execution grant.
+3. **Dimensional Limitation**: String-level compatibility in `UnitRegistry.are_compatible()` verifies dimensional algebra, but **does not prove semantic correctness** of the unit assignment for a specific domain variable.
+4. **Audit and Verification Baseline**: Full details, unrepresented field audit, and semantic contracts are documented in [`docs/O7_MAPPING_AUDIT.md`](O7_MAPPING_AUDIT.md). Verified by 25 tests in `tests/test_o7_triad_semantics.py`.
 

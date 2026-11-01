@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field, asdict
 from enum import Enum
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 import json
 
 
@@ -107,6 +107,8 @@ class TaskFramingReport:
     clarification_questions: List[ClarificationQuestion] = field(default_factory=list)
     summary_explanation: str = ""
     provisional_flags: List[str] = field(default_factory=list)
+    audit_trail: List[Dict[str, Any]] = field(default_factory=list)
+    audit_trail_hash: str = ""
 
     def __post_init__(self):
         # Strict safety invariant check
@@ -119,6 +121,26 @@ class TaskFramingReport:
             raise ValueError(
                 "Safety Invariant Violation: If mutation_requested is True, safety_barrier_state MUST be ENGAGED."
             )
+
+    def verify_audit_trail(self) -> Tuple[bool, Optional[int], Optional[str]]:
+        """Verifies cryptographic hash chain integrity of the diagnostic report."""
+        if not self.audit_trail:
+            return True, None, None
+        from .hash_chain import DiagnosticHashChain, DiagnosticBlock
+        try:
+            chain = DiagnosticHashChain([DiagnosticBlock.from_dict(d) for d in self.audit_trail])
+            is_valid, bad_idx, err = chain.verify_integrity()
+            if not is_valid:
+                return False, bad_idx, err
+            if self.audit_trail_hash and chain.head_hash != self.audit_trail_hash:
+                return (
+                    False,
+                    len(self.audit_trail) - 1,
+                    f"Audit trail head hash mismatch: expected {self.audit_trail_hash}, got {chain.head_hash}"
+                )
+            return True, None, None
+        except Exception as e:
+            return False, None, str(e)
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -162,6 +184,8 @@ class TaskFramingReport:
             ],
             "summary_explanation": self.summary_explanation,
             "provisional_flags": self.provisional_flags,
+            "audit_trail": self.audit_trail,
+            "audit_trail_hash": self.audit_trail_hash,
         }
 
     def to_json(self, indent: int = 2) -> str:
@@ -235,6 +259,8 @@ class TaskFramingReport:
             clarification_questions=clarification_questions,
             summary_explanation=data.get("summary_explanation", ""),
             provisional_flags=data.get("provisional_flags", []),
+            audit_trail=data.get("audit_trail", []),
+            audit_trail_hash=data.get("audit_trail_hash", ""),
         )
 
     @classmethod

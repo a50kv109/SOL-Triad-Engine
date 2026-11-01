@@ -7,7 +7,88 @@ This project follows a strict empirical verification policy: changes are recorde
 
 ---
 
+## [v0.1-exp] — Round 4: Diagnostic Hash Chain (belov-fiber-sdk) & Fail-Closed Adapter Bridge (2026-11-01)
+
+### Added
+- **Diagnostic Hash Chain (`pre_sol/hash_chain.py`):**
+  - Implemented `DiagnosticBlock` and `DiagnosticHashChain` inspired by `belov-fiber-sdk` distributed log verification.
+  - Deterministic canonical serialization (`sort_keys=True`, compact separators) and SHA-256 block hashing over `(index, timestamp, step_name, prev_hash, canonical_payload)`.
+  - Sequential linking from genesis (`"0" * 64`) to `head_hash`.
+  - Full audit trail export/import and tamper detection (`verify_integrity()`) catching payload mutations, forged timestamps, deleted blocks, and index desynchronizations.
+- **Fail-Closed Adapter Bridge (`pre_sol/adapter_bridge.py`):**
+  - Implemented `PreSolTriadBridge` governing the contract between Pre-SOL Task Framing and `SolTriadJsonAdapter`.
+  - **Anti-Self-Minting Invariant:** Explicitly raises `SelfMintingViolationError` if any ungrounded claim carries synthetic or mock `evidence_id`.
+  - **Fail-Closed Mutation Barrier:** Raises `SafetyBarrierViolationError` if mutation is requested without explicit external operator authorization.
+  - **Evidence Cryptographic Binding:** `create_diagnostic_evidence_record()` binds Pre-SOL `audit_trail_hash` as `payload_hash` in an authoritative `EvidenceRecord`.
+  - **Validated Request Generator:** `build_verification_request()` compiles a valid JSON payload matching `sol_triad_request.schema.json`.
+- **Pre-SOL Engine Integration (`pre_sol/engine.py` & `pre_sol/models.py`):**
+  - Updated `PreSolEngine.analyze()` to seal each diagnostic step into the hash chain:
+    - Block 0: `TSK_STEP_1_RAW_QUERY_INGEST` (preserves raw query SHA-256 and byte length).
+    - Block 1: `TSK_STEP_3_STATEMENT_EXTRACTION` (preserves extracted statements and grounding sources).
+    - Block 2: `TSK_STEP_4_CONTRADICTION_ANALYSIS` (preserves diagnostic findings and severity).
+    - Block 3: `TSK_STEP_5_6_READINESS_AND_BARRIER_EVALUATION` (preserves readiness states and barrier engagement).
+    - Block 4: `TSK_STEP_7_CLARIFICATION_DISPATCH` (preserves clarification questions and provisional flags).
+  - Added `audit_trail` and `audit_trail_hash` fields and `verify_audit_trail()` verification method to `TaskFramingReport`.
+- **Hash Chain & Bridge Test Suite (`tests/test_hash_chain.py`):**
+  - 11 unit and integration tests covering:
+    - `test_01`: Genesis prev_hash invariant and sequential SHA-256 linking.
+    - `test_02`: Payload tampering detection and corrupted block indexing.
+    - `test_03`: Timestamp tampering detection.
+    - `test_04`: Block deletion and desynchronization detection.
+    - `test_05`: Deterministic canonical hashing across key orders.
+    - `test_06`: Engine automatic generation of verified 5-block TSK chain.
+    - `test_07`: Tampered JSON audit trail deserialization rejection.
+    - `test_08`: Forged head hash detection.
+    - `test_09`: Anti-self-minting rejection in bridge.
+    - `test_10`: Fail-closed safety barrier enforcement on mutation commands.
+    - `test_11`: End-to-end integration: operator evidence binding -> `InMemoryEvidenceRegistry` -> `SolTriadJsonAdapter.evaluate_json()` -> deterministic `PASS` verdict.
+
+### Verification
+- `python3 -m unittest tests/test_pre_sol.py`: **32 tests passing (100% OK, 0.066s)**.
+- `python3 -m unittest tests/test_o7_triad_semantics.py`: **9 tests passing (100% OK, 0.002s)**.
+- `python3 -m unittest tests/test_hash_chain.py`: **11 tests passing (100% OK, 0.025s)**.
+- **Combined Test Suite:** `python3 -m unittest tests/test_pre_sol.py tests/test_o7_triad_semantics.py tests/test_hash_chain.py`: **52 tests passing (100% OK, 0.083s)**.
+- Applet compilation (`compile_applet`): **Build succeeded cleanly**.
+
+---
+
+## [v0.1-exp] — Round 3: O7 ↔ S-C-D Semantic Alignment & Pre-SOL Boundary Hardening (2026-11-01)
+
+### Added
+- **O7 Mapping Model (`sol_triad/o7_mapping.py`):**
+  Implemented typed O7 data classes (`O7Source`, `O7State`, `O7Flow`, `O7Constraint`, `O7Compare`, `O7Dissipate`, `O7Capability`, `O7Bundle`) and non-destructive mapping function `map_o7_to_triad(bundle) -> O7MappingResult`. Enforces zero silent data loss: all unrepresented fields are returned in an explicit audit list. Marked as `PROPOSED`.
+- **O7 Semantics Test Suite (`tests/test_o7_triad_semantics.py`):**
+  Added 9 automated unit/semantic tests verifying the operational semantics and exact structural gaps of all 7 O7 primitives against the Triad Engine:
+  - `test_01`: SOURCE epistemic grounding, authority domain containment, and anti-self-minting.
+  - `test_02`: STATE terminal simulation $S' = S_0 + \Delta - \text{Cost}$ and passive environmental input boundary.
+  - `test_03`: FLOW static delta transition verification vs dynamic branching gap.
+  - `test_04`: CONSTRAINT invariant protection and numeric/flag bound checks.
+  - `test_05`: COMPARE pairwise verification ($P_{SC}, P_{CD}, P_{SD}$) vs goal utility evaluation gap.
+  - `test_06`: DISSIPATE non-negative costs and loss domain containment.
+  - `test_07`: CAPABILITY passive authority bounding vs tool execution API gap.
+  - `test_08`: O7 mapping layer audit trail (file modification scenario) verifying zero silent data loss.
+  - `test_09`: Epistemic arbiter stability: stale/unknown evidence strictly yields `REVIEW`, never `PASS`.
+
+### Enhanced
+- **Pre-SOL Test Suite (`tests/test_pre_sol.py`):**
+  Added tests 29 through 32 (total 32 tests, 100% PASS):
+  - `test_29`: Epistemic boundary check: ungrounded fact claims yield `NEEDS_CLARIFICATION`, never promoted to `READY` or `PASS`.
+  - `test_30`: Data deficiency: action command without explicit constraints triggers `DATA_DEFICIENCY` and blocks formalization.
+  - `test_31`: Epistemic isolation: verifies Pre-SOL never synthesizes or injects fake evidence IDs or mock tokens.
+  - `test_32`: Qualitative unmeasurable goal prevents promotion to `READY`.
+- **Documentation Synchronization:**
+  - `docs/SOL_COMPATIBILITY.md`: Synchronized O7 ↔ S-C-D primitive mapping table, highlighting confirmed gaps.
+  - `PRE_SOL_EXPERIMENTAL_STATUS.md`: Added interface specification table and comprehensive mapping matrix against the 7 diagnostic questions of TSK (Виногродский), distinguishing code implementation from human/LLM requirements.
+
+### Verification
+- `python3 -m unittest tests/test_pre_sol.py -v`: **32 tests passing (100% OK, 0.067s)**.
+- `python3 -m unittest tests/test_o7_triad_semantics.py -v`: **9 tests passing (100% OK, 0.002s)**.
+- Total test coverage: **41 verified tests passing (100% OK)**.
+
+---
+
 ## [v0.1-exp] — Round 2: Boundary Cases & Baseline Hardening (2026-11-01)
+
 
 ### Fixed & Enhanced
 - **Imperative Mutation Verb Recognition (`pre_sol/config.py`):**
